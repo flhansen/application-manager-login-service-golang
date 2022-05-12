@@ -1,4 +1,5 @@
 # Application Manager Login Service
+The microservice of the Application Manager for authentication/authorization tasks.
 
 ## Requirements
 
@@ -29,3 +30,8 @@ To obtain test coverage information you may want to execute the following comman
 After that you can create a nicer view for the test coverage using
 
     go tool cover -html /tmp/cover.out -o /tmp/cover.html
+
+## Endpoints
+
+- `POST` `/api/auth/register` Register a new user
+- `POST` `/api/auth/login` Create auth token for user
