@@ -1,10 +1,12 @@
 # Application Manager Login Service
 The microservice of the Application Manager for authentication/authorization tasks.
 
+![go test](https://github.com/flhansen/application-manager-login-service-golang/actions/workflows/test.yml/badge.svg)
+
 ## Requirements
 
 - Git
-- Golang (version go1.18.1)
+- Golang (version 1.18.x)
 - PostgreSQL
 
 ## Get the project
