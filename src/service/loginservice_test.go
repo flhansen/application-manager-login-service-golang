@@ -3,6 +3,7 @@ package service
 import (
 	"bytes"
 	"encoding/json"
+	"flhansen/application-manager/login-service/src/database"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -22,24 +23,17 @@ func TestMain(m *testing.M) {
 }
 
 func runAllTests(m *testing.M) int {
-	homeDir, err := os.UserHomeDir()
-
-	if err != nil {
-		fmt.Printf("Could not get the home directory of the current user: %v", err)
-		return 1
-	}
-
-	configPath := filepath.Join(homeDir, ".secret/application_manager_login_service_db.yml")
-	loginService, err = New("localhost", 8080, configPath)
-
-	if err != nil {
-		fmt.Printf("Could not create login service instance: %v", err)
-		return 1
-	}
+	loginService = NewWithConfig("localhost", 8080, database.DatabaseConfig{
+		Host:     "localhost",
+		Port:     5432,
+		Username: "test",
+		Password: "test",
+		Database: "test",
+	})
 
 	// Make sure the user 'testuser' does not exist and then create it
-	loginService.Database.DeleteAccountByUsername("testuser")
-	_, err = loginService.Database.InsertAccount("testuser", "testpass", "testuser@test.com", time.Now())
+	loginService.Database.CreateSchema()
+	_, err := loginService.Database.InsertAccount("testuser", "testpass", "testuser@test.com", time.Now())
 
 	if err != nil {
 		fmt.Printf("Could not insert test user: %v\n", err)
@@ -300,6 +294,25 @@ func TestRegisterInvalidJsonRequest(t *testing.T) {
 	assert.NotNil(t, res["message"])
 }
 
+func TestLoginServiceNewWithConfigFile(t *testing.T) {
+	filePath := filepath.Join(os.TempDir(), "test_database_file.yml")
+	err := ioutil.WriteFile(filePath, []byte(
+		"host: localhost\n"+
+			"port: 5432\n"+
+			"username: test\n"+
+			"password: test\n"+
+			"database: test"), 0777)
+
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	defer os.Remove(filePath)
+	_, err = NewWithConfigFile("localhost", 8080, filePath)
+
+	assert.Nil(t, err)
+}
+
 func TestLoginServiceNewInvalidConfig(t *testing.T) {
 	filePath := filepath.Join(os.TempDir(), "test_database_file.yml")
 	err := ioutil.WriteFile(filePath, []byte("invalid file content"), 0777)
@@ -309,7 +322,7 @@ func TestLoginServiceNewInvalidConfig(t *testing.T) {
 	}
 
 	defer os.Remove(filePath)
-	_, err = New("localhost", 8080, filePath)
+	_, err = NewWithConfigFile("localhost", 8080, filePath)
 
 	assert.NotNil(t, err)
 }

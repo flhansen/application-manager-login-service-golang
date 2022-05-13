@@ -13,6 +13,8 @@ func TestRunApplication(t *testing.T) {
 	done := make(chan int, 1)
 
 	go func() {
+		flag.CommandLine = flag.NewFlagSet("flags set", flag.ExitOnError)
+		os.Args = append([]string{"flags set"}, "-dbhost=localhost -dbport=5432 -dbusername=test -dbpassword=test -dbdatabase=test")
 		done <- runApplication()
 	}()
 

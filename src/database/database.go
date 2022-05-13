@@ -64,6 +64,25 @@ func (ctx PostgresContext) Query(query string, args ...interface{}) (pgx.Row, er
 	return row, nil
 }
 
+func (ctx PostgresContext) CreateSchema() error {
+	_, err := ctx.Query("DROP TABLE IF EXISTS account")
+
+	if err != nil {
+		return err
+	}
+
+	_, err = ctx.Query(
+		`CREATE TABLE account (
+			id SERIAL PRIMARY KEY,
+			username VARCHAR(80) UNIQUE NOT NULL,
+			password VARCHAR(80) NOT NULL,
+			email VARCHAR(80) UNIQUE NOT NULL,
+			creation_date TIMESTAMP WITH TIME ZONE DEFAULT now()
+		)`)
+
+	return err
+}
+
 func (ctx PostgresContext) InsertAccount(username string, password string, email string, creationDate time.Time) (int, error) {
 	rng := security.RandomGenerator{Reader: rand.Reader}
 	salt, err := rng.GenerateSalt(16)

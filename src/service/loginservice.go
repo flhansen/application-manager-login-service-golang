@@ -79,13 +79,7 @@ func (service LoginService) RegisterHandler(w http.ResponseWriter, r *http.Reque
 	fmt.Fprint(w, NewApiResponse(http.StatusOK, "User registered"))
 }
 
-func New(host string, port int, configPath string) (LoginService, error) {
-	context, err := database.NewContextFromConfig(configPath)
-
-	if err != nil {
-		return LoginService{}, err
-	}
-
+func NewWithContext(host string, port int, context *database.PostgresContext) LoginService {
 	service := LoginService{
 		Port:     port,
 		Host:     host,
@@ -96,6 +90,23 @@ func New(host string, port int, configPath string) (LoginService, error) {
 	service.Router.POST("/api/auth/login", service.LoginHandler)
 	service.Router.POST("/api/auth/register", service.RegisterHandler)
 
+	return service
+}
+
+func NewWithConfig(host string, port int, config database.DatabaseConfig) LoginService {
+	context := database.NewContext(config.Host, config.Port, config.Username, config.Password, config.Database)
+	service := NewWithContext(host, port, context)
+	return service
+}
+
+func NewWithConfigFile(host string, port int, configPath string) (LoginService, error) {
+	context, err := database.NewContextFromConfig(configPath)
+
+	if err != nil {
+		return LoginService{}, err
+	}
+
+	service := NewWithContext(host, port, context)
 	return service, nil
 }
 

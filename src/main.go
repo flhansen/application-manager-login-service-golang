@@ -2,10 +2,10 @@ package main
 
 import (
 	"flag"
+	"flhansen/application-manager/login-service/src/database"
 	"flhansen/application-manager/login-service/src/service"
 	"fmt"
 	"os"
-	"path/filepath"
 )
 
 func main() {
@@ -13,20 +13,37 @@ func main() {
 }
 
 func runApplication() int {
-	homeDir, _ := os.UserHomeDir()
 	port := flag.Int("port", 8080, "Listening port")
 	host := flag.String("host", "localhost", "Host")
-	configPath := flag.String("dbconfig", filepath.Join(homeDir, ".secret/application_manager_login_service_db.yml"), "dbconfig")
+	configPath := flag.String("dbconfig", "", "Database Configuration File")
+	dbHost := flag.String("dbhost", "localhost", "Database Host")
+	dbPort := flag.Int("dbport", 5432, "Database Port")
+	dbUsername := flag.String("dbusername", "username", "Database Username")
+	dbPassword := flag.String("dbpassword", "password", "Database Password")
+	dbDatabase := flag.String("dbdatabase", "database", "Database Name")
 	flag.Parse()
 
-	fmt.Printf("Using database configuration file: %s\n", *configPath)
-	service, err := service.New(*host, *port, *configPath)
+	var err error
+	var server service.LoginService
+
+	if *configPath != "" {
+		fmt.Printf("Using database configuration file: %s\n", *configPath)
+		server, err = service.NewWithConfigFile(*host, *port, *configPath)
+	} else {
+		server = service.NewWithConfig(*host, *port, database.DatabaseConfig{
+			Host:     *dbHost,
+			Port:     *dbPort,
+			Username: *dbUsername,
+			Password: *dbPassword,
+			Database: *dbDatabase,
+		})
+	}
 
 	if err != nil {
 		fmt.Printf("Could not create login service instance: %v\n", err)
 		return 1
 	}
 
-	service.Start()
+	server.Start()
 	return 0
 }
