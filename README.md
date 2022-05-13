@@ -21,7 +21,7 @@ Then get all the packages and dependencies using
 
 ## Run the tests
 It is important, that the test **do not** run in parallel, because they could
-interfere each other while executing queries in the database.
+interfere with each other while executing queries on the database.
 
     go test -p 1 ./src/...
 
