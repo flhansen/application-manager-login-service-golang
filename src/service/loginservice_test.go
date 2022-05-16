@@ -28,8 +28,10 @@ func TestMain(m *testing.M) {
 }
 
 func runAllTests(m *testing.M) int {
-	loginService = NewWithConfig("localhost", 8080,
+	loginService = NewWithConfig(
 		ServiceConfig{
+			Host: "localhost",
+			Port: 8080,
 			JwtConfig: auth.JwtConfig{
 				SignKey: "supersecretsigningkey",
 			},
@@ -318,7 +320,7 @@ func TestLoginServiceNewWithConfigFile(t *testing.T) {
 	}
 
 	defer os.Remove(filePath)
-	_, err = NewWithConfigFile("localhost", 8080, filePath)
+	_, err = NewWithConfigFile(filePath)
 
 	assert.Nil(t, err)
 }
@@ -332,7 +334,7 @@ func TestLoginServiceNewInvalidConfig(t *testing.T) {
 	}
 
 	defer os.Remove(filePath)
-	_, err = NewWithConfigFile("localhost", 8080, filePath)
+	_, err = NewWithConfigFile(filePath)
 
 	assert.NotNil(t, err)
 }
