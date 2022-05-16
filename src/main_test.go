@@ -1,7 +1,6 @@
 package main
 
 import (
-	"encoding/json"
 	"flag"
 	"flhansen/application-manager/login-service/src/auth"
 	"flhansen/application-manager/login-service/src/database"
@@ -13,6 +12,7 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/assert"
+	"gopkg.in/yaml.v3"
 )
 
 func TestRunApplication(t *testing.T) {
@@ -29,7 +29,7 @@ func TestRunApplication(t *testing.T) {
 		},
 	}
 
-	configData, err := json.Marshal(config)
+	configData, err := yaml.Marshal(config)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -69,6 +69,50 @@ func TestRunApplicationInvalidConfig(t *testing.T) {
 	select {
 	case <-time.After(500 * time.Millisecond):
 		t.Fatal("Application is not terminating")
+	case exitCode := <-done:
+		assert.Equal(t, 1, exitCode)
+	}
+}
+
+func TestRunApplicationStartError(t *testing.T) {
+	config := service.ServiceConfig{
+		Host: "test",
+		Port: -1,
+		JwtConfig: auth.JwtConfig{
+			SignKey: "supersecretsigningkey",
+		},
+		DatabaseConfig: database.DatabaseConfig{
+			Host:     "localhost",
+			Port:     -1,
+			Username: "test",
+			Password: "test",
+			Database: "test",
+		},
+	}
+
+	configData, err := yaml.Marshal(config)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	configPath := filepath.Join(os.TempDir(), "test_config.yml")
+	if err = ioutil.WriteFile(configPath, configData, 0777); err != nil {
+		t.Fatal(err)
+	}
+
+	defer os.Remove(configPath)
+
+	done := make(chan int, 1)
+
+	go func() {
+		flag.CommandLine = flag.NewFlagSet("flags set", flag.ExitOnError)
+		os.Args = append([]string{"flags set"}, "-dbconfig="+configPath)
+		done <- runApplication()
+	}()
+
+	select {
+	case <-time.After(500 * time.Millisecond):
+		t.Fatal()
 	case exitCode := <-done:
 		assert.Equal(t, 1, exitCode)
 	}
