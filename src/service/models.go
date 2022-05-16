@@ -18,10 +18,10 @@ type RegisterRequest struct {
 }
 
 type ServiceConfig struct {
-	Host           string `yaml:"host"`
-	Port           int    `yaml:"port"`
-	JwtConfig      auth.JwtConfig
-	DatabaseConfig database.DatabaseConfig
+	Host           string                  `yaml:"host"`
+	Port           int                     `yaml:"port"`
+	JwtConfig      auth.JwtConfig          `yaml:"jwt"`
+	DatabaseConfig database.DatabaseConfig `yaml:"database"`
 }
 
 func NewApiResponse(status int, message string) string {

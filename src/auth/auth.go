@@ -14,7 +14,7 @@ type JwtClaims struct {
 }
 
 type JwtConfig struct {
-	SignKey string
+	SignKey string `yaml:"signkey"`
 }
 
 func GenerateToken(acc database.Account, signingMethod jwt.SigningMethod, key interface{}) (string, error) {

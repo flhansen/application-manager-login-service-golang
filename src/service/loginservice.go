@@ -68,23 +68,7 @@ func (service LoginService) RegisterHandler(w http.ResponseWriter, r *http.Reque
 }
 
 func (service LoginService) DeleteHandler(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
-	tokenString := r.Header.Get("Authorization")
-	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
-		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
-			return nil, fmt.Errorf("Unexpected signing method: %v", token.Header["alg"])
-		}
-
-		return service.JwtSignKey, nil
-	})
-
-	if err != nil {
-		w.WriteHeader(http.StatusUnauthorized)
-		fmt.Fprint(w, NewApiResponse(http.StatusUnauthorized, "You are not allowed to delete this user"))
-		return
-	}
-
-	claims := token.Claims.(jwt.MapClaims)
-	username := claims["username"].(string)
+	username := r.Header.Get("username")
 
 	if err := service.Database.DeleteAccountByUsername(username); err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
@@ -94,6 +78,29 @@ func (service LoginService) DeleteHandler(w http.ResponseWriter, r *http.Request
 
 	w.WriteHeader(http.StatusOK)
 	fmt.Fprint(w, NewApiResponse(http.StatusOK, "User deleted"))
+}
+
+func Authenticated(service LoginService, handler httprouter.Handle) httprouter.Handle {
+	return func(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
+		tokenString := r.Header.Get("Authorization")
+		token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
+			if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+				return nil, fmt.Errorf("Unexpected signing method: %v", token.Header["alg"])
+			}
+
+			return service.JwtSignKey, nil
+		})
+
+		if err != nil {
+			w.Header().Set("WWW-Authenticate", "Basic realm=Restricted")
+			http.Error(w, NewApiResponse(http.StatusUnauthorized, "You are not allowed"), http.StatusUnauthorized)
+			return
+		}
+
+		claims := token.Claims.(jwt.MapClaims)
+		r.Header.Add("username", claims["username"].(string))
+		handler(w, r, p)
+	}
 }
 
 func NewWithContext(host string, port int, signKey []byte, context *database.PostgresContext) *LoginService {
@@ -107,7 +114,7 @@ func NewWithContext(host string, port int, signKey []byte, context *database.Pos
 
 	service.Router.POST("/api/auth/login", service.LoginHandler)
 	service.Router.POST("/api/auth/register", service.RegisterHandler)
-	service.Router.DELETE("/api/auth/delete", service.DeleteHandler)
+	service.Router.DELETE("/api/auth/delete", Authenticated(service, service.DeleteHandler))
 
 	return &service
 }

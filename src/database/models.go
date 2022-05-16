@@ -5,11 +5,11 @@ import (
 )
 
 type DatabaseConfig struct {
-	Host     string
-	Port     int
-	Username string
-	Password string
-	Database string
+	Host     string `yaml:"host"`
+	Port     int    `yaml:"port"`
+	Username string `yaml:"username"`
+	Password string `yaml:"password"`
+	Database string `yaml:"database"`
 }
 
 type Account struct {

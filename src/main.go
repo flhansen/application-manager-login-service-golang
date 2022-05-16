@@ -23,6 +23,10 @@ func runApplication() int {
 		return 1
 	}
 
-	server.Start()
+	if err = server.Start(); err != nil {
+		fmt.Printf("Could not start login service: %v\n", err)
+		return 1
+	}
+
 	return 0
 }

@@ -308,14 +308,26 @@ func TestRegisterInvalidJsonRequest(t *testing.T) {
 
 func TestLoginServiceNewWithConfigFile(t *testing.T) {
 	filePath := filepath.Join(os.TempDir(), "test_database_file.yml")
-	err := ioutil.WriteFile(filePath, []byte(
-		"host: localhost\n"+
-			"port: 5432\n"+
-			"username: test\n"+
-			"password: test\n"+
-			"database: test"), 0777)
+	config := ServiceConfig{
+		Host: "localhost",
+		Port: 8080,
+		JwtConfig: auth.JwtConfig{
+			SignKey: "supersecretsigningkey",
+		},
+		DatabaseConfig: database.DatabaseConfig{
+			Host:     "localhost",
+			Port:     5432,
+			Username: "test",
+			Password: "test",
+			Database: "test",
+		}}
 
+	configData, err := json.Marshal(config)
 	if err != nil {
+		t.Fatal(err)
+	}
+
+	if err = ioutil.WriteFile(filePath, configData, 0777); err != nil {
 		t.Fatal(err)
 	}
 
