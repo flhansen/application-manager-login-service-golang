@@ -18,6 +18,8 @@ type RegisterRequest struct {
 }
 
 type ServiceConfig struct {
+	Host           string `yaml:"host"`
+	Port           int    `yaml:"port"`
 	JwtConfig      auth.JwtConfig
 	DatabaseConfig database.DatabaseConfig
 }

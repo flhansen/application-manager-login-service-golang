@@ -112,7 +112,7 @@ func NewWithContext(host string, port int, signKey []byte, context *database.Pos
 	return &service
 }
 
-func NewWithConfig(host string, port int, config ServiceConfig) *LoginService {
+func NewWithConfig(config ServiceConfig) *LoginService {
 	context := database.NewContext(
 		config.DatabaseConfig.Host,
 		config.DatabaseConfig.Port,
@@ -120,10 +120,10 @@ func NewWithConfig(host string, port int, config ServiceConfig) *LoginService {
 		config.DatabaseConfig.Password,
 		config.DatabaseConfig.Database)
 
-	return NewWithContext(host, port, []byte(config.JwtConfig.SignKey), context)
+	return NewWithContext(config.Host, config.Port, []byte(config.JwtConfig.SignKey), context)
 }
 
-func NewWithConfigFile(host string, port int, configPath string) (*LoginService, error) {
+func NewWithConfigFile(configPath string) (*LoginService, error) {
 	fileBytes, err := ioutil.ReadFile(configPath)
 
 	if err != nil {
@@ -135,7 +135,7 @@ func NewWithConfigFile(host string, port int, configPath string) (*LoginService,
 		return nil, err
 	}
 
-	service := NewWithConfig(host, port, config)
+	service := NewWithConfig(config)
 	return service, nil
 }
 
