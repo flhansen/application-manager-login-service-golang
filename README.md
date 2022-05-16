@@ -35,5 +35,6 @@ After that you can create a nicer view for the test coverage using
 
 ## Endpoints
 
-- `POST` `/api/auth/register` Register a new user
-- `POST` `/api/auth/login` Create auth token for user
+- `POST` `/api/auth/register` Register a new account
+- `POST` `/api/auth/login` Create auth token for account
+- `DELETE` `/api/auth/delete` Delete account

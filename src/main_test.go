@@ -1,8 +1,14 @@
 package main
 
 import (
+	"encoding/json"
 	"flag"
+	"flhansen/application-manager/login-service/src/auth"
+	"flhansen/application-manager/login-service/src/database"
+	"flhansen/application-manager/login-service/src/service"
+	"io/ioutil"
 	"os"
+	"path/filepath"
 	"testing"
 	"time"
 
@@ -10,11 +16,36 @@ import (
 )
 
 func TestRunApplication(t *testing.T) {
+	config := service.ServiceConfig{
+		JwtConfig: auth.JwtConfig{
+			SignKey: "supersecretsigningkey",
+		},
+		DatabaseConfig: database.DatabaseConfig{
+			Host:     "localhost",
+			Port:     5432,
+			Username: "test",
+			Password: "test",
+			Database: "test",
+		},
+	}
+
+	configData, err := json.Marshal(config)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	configPath := filepath.Join(os.TempDir(), "test_config.yml")
+	if err = ioutil.WriteFile(configPath, configData, 0777); err != nil {
+		t.Fatal(err)
+	}
+
+	defer os.Remove(configPath)
+
 	done := make(chan int, 1)
 
 	go func() {
 		flag.CommandLine = flag.NewFlagSet("flags set", flag.ExitOnError)
-		os.Args = append([]string{"flags set"}, "-dbhost=localhost -dbport=5432 -dbusername=test -dbpassword=test -dbdatabase=test")
+		os.Args = append([]string{"flags set"}, "-dbconfig="+configPath)
 		done <- runApplication()
 	}()
 

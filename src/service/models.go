@@ -1,6 +1,10 @@
 package service
 
-import "encoding/json"
+import (
+	"encoding/json"
+	"flhansen/application-manager/login-service/src/auth"
+	"flhansen/application-manager/login-service/src/database"
+)
 
 type LoginRequest struct {
 	Username string `json:"username"`
@@ -11,6 +15,11 @@ type RegisterRequest struct {
 	Username string `json:"username"`
 	Password string `json:"password"`
 	Email    string `json:"email"`
+}
+
+type ServiceConfig struct {
+	JwtConfig      auth.JwtConfig
+	DatabaseConfig database.DatabaseConfig
 }
 
 func NewApiResponse(status int, message string) string {
