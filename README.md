@@ -21,8 +21,17 @@ Then get all the packages and dependencies using
     go install
 
 ## Run the tests
-It is important, that the test **do not** run in parallel, because they could
-interfere with each other while executing queries on the database.
+Make sure you have a local instance of the PostgreSQL database running. The
+tests expect the database running on `localhost` and port `5432`. Also, for
+running the tests, make sure the test database `test` and the user `test:test`
+is configured. You don't need to create entities, because the tests theirselves
+will create those automatically. Here is an example of how you can configure the
+database using [Docker](https://docker.com/).
+
+    docker run --name postgres -dp 5432:5432 -e POSTGRES_PASSWORD=test -e POSTGRES_USER=test -e POSTGRES_DB=test -d postgres
+
+It is important to **not** run the tests in parallel, because they could
+interfere each other while executing queries on the database.
 
     go test -p 1 ./src/...
 
