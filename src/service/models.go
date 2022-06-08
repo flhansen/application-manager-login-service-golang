@@ -2,8 +2,7 @@ package service
 
 import (
 	"encoding/json"
-	"flhansen/application-manager/login-service/src/auth"
-	"flhansen/application-manager/login-service/src/database"
+	"flhansen/application-manager/login-service/src/controller"
 )
 
 type LoginRequest struct {
@@ -18,10 +17,10 @@ type RegisterRequest struct {
 }
 
 type ServiceConfig struct {
-	Host           string                  `yaml:"host"`
-	Port           int                     `yaml:"port"`
-	JwtConfig      auth.JwtConfig          `yaml:"jwt"`
-	DatabaseConfig database.DatabaseConfig `yaml:"database"`
+	Host     string              `yaml:"host"`
+	Port     int                 `yaml:"port"`
+	Jwt      JwtConfig           `yaml:"jwt"`
+	Database controller.DbConfig `yaml:"database"`
 }
 
 func NewApiResponse(status int, message string) string {

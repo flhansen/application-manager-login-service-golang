@@ -7,12 +7,10 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"flhansen/application-manager/login-service/src/auth"
-	"flhansen/application-manager/login-service/src/database"
+	"flhansen/application-manager/login-service/src/controller"
 	"fmt"
-	"io/ioutil"
 	"net/http"
 	"os"
-	"path/filepath"
 	"strings"
 	"testing"
 	"time"
@@ -28,14 +26,14 @@ func TestMain(m *testing.M) {
 }
 
 func runAllTests(m *testing.M) int {
-	loginService = NewWithConfig(
+	loginService = New(
 		ServiceConfig{
 			Host: "localhost",
 			Port: 8080,
-			JwtConfig: auth.JwtConfig{
-				SignKey: "supersecretsigningkey",
+			Jwt: JwtConfig{
+				SignKey: []byte("supersecretsigningkey"),
 			},
-			DatabaseConfig: database.DatabaseConfig{
+			Database: controller.DbConfig{
 				Host:     "localhost",
 				Port:     5432,
 				Username: "test",
@@ -95,7 +93,7 @@ func TestLoginSuccess(t *testing.T) {
 	json.NewDecoder(resp.Body).Decode(&res)
 
 	tokenString := fmt.Sprintf("%v", res["token"])
-	token, _ := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
+	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 			return nil, fmt.Errorf("Unexpected signing method: %v", token.Header["alg"])
 		}
@@ -103,8 +101,11 @@ func TestLoginSuccess(t *testing.T) {
 		return []byte("supersecretsigningkey"), nil
 	})
 
-	claims, ok := token.Claims.(jwt.MapClaims)
+	if err != nil {
+		t.Fatal(err)
+	}
 
+	claims, ok := token.Claims.(jwt.MapClaims)
 	if !ok {
 		t.Fatal("Invalid token")
 	}
@@ -175,6 +176,38 @@ func TestLoginWrongUsername(t *testing.T) {
 func TestLoginInvalidJsonRequest(t *testing.T) {
 	invalidJsonString := `{ "username": "testuser", "password": "testpass`
 	resp, err := http.Post("http://localhost:8080/api/auth/login", "application/json", bytes.NewBuffer([]byte(invalidJsonString)))
+
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	var res map[string]interface{}
+	json.NewDecoder(resp.Body).Decode(&res)
+
+	assert.Equal(t, http.StatusInternalServerError, resp.StatusCode)
+	assert.NotNil(t, res["status"])
+	assert.NotNil(t, res["message"])
+}
+
+func TestLoginTokenSignError(t *testing.T) {
+	loginRequestBody := LoginRequest{
+		Username: "testuser",
+		Password: "testpass",
+	}
+
+	body, err := json.Marshal(loginRequestBody)
+
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	oldSignKey := loginService.JwtSignKey
+	loginService.JwtSignKey = ""
+	defer func() {
+		loginService.JwtSignKey = oldSignKey
+	}()
+
+	resp, err := http.Post("http://localhost:8080/api/auth/login", "application/json", bytes.NewBuffer(body))
 
 	if err != nil {
 		t.Fatal(err)
@@ -306,56 +339,11 @@ func TestRegisterInvalidJsonRequest(t *testing.T) {
 	assert.NotNil(t, res["message"])
 }
 
-func TestLoginServiceNewWithConfigFile(t *testing.T) {
-	filePath := filepath.Join(os.TempDir(), "test_database_file.yml")
-	config := ServiceConfig{
-		Host: "localhost",
-		Port: 8080,
-		JwtConfig: auth.JwtConfig{
-			SignKey: "supersecretsigningkey",
-		},
-		DatabaseConfig: database.DatabaseConfig{
-			Host:     "localhost",
-			Port:     5432,
-			Username: "test",
-			Password: "test",
-			Database: "test",
-		}}
-
-	configData, err := json.Marshal(config)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	if err = ioutil.WriteFile(filePath, configData, 0777); err != nil {
-		t.Fatal(err)
-	}
-
-	defer os.Remove(filePath)
-	_, err = NewWithConfigFile(filePath)
-
-	assert.Nil(t, err)
-}
-
-func TestLoginServiceNewInvalidConfig(t *testing.T) {
-	filePath := filepath.Join(os.TempDir(), "test_database_file.yml")
-	err := ioutil.WriteFile(filePath, []byte("invalid file content"), 0777)
-
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	defer os.Remove(filePath)
-	_, err = NewWithConfigFile(filePath)
-
-	assert.NotNil(t, err)
-}
-
 func TestDelete(t *testing.T) {
 	loginService.Database.CreateSchema()
 	loginService.Database.InsertAccount("test", "test", "testuser@test.com", time.Now())
 	acc, _ := loginService.Database.GetAccountByUsername("test")
-	token, err := auth.GenerateToken(acc, jwt.SigningMethodHS256, []byte("supersecretsigningkey"))
+	token, _ := auth.GenerateToken(acc.Id, acc.Username, jwt.SigningMethodHS256, []byte("supersecretsigningkey"))
 
 	client := &http.Client{}
 
@@ -386,8 +374,8 @@ func TestDeleteWrongSigningMethod(t *testing.T) {
 	loginService.Database.InsertAccount("test", "test", "testuser@test.com", time.Now())
 	acc, _ := loginService.Database.GetAccountByUsername("test")
 
-	privateKey, err := rsa.GenerateKey(rand.Reader, 2048)
-	token, err := auth.GenerateToken(acc, jwt.SigningMethodRS256, privateKey)
+	privateKey, _ := rsa.GenerateKey(rand.Reader, 2048)
+	token, _ := auth.GenerateToken(acc.Id, acc.Username, jwt.SigningMethodRS256, privateKey)
 
 	client := &http.Client{}
 
@@ -463,7 +451,7 @@ func TestDeleteInvalidQuery(t *testing.T) {
 		loginService.Database.Port = oldPort
 	}()
 
-	tokenString, err := auth.GenerateToken(acc, jwt.SigningMethodHS256, []byte("supersecretsigningkey"))
+	tokenString, err := auth.GenerateToken(acc.Id, acc.Username, jwt.SigningMethodHS256, []byte("supersecretsigningkey"))
 	if err != nil {
 		t.Fatal(err)
 	}

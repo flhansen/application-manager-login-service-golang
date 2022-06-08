@@ -20,6 +20,17 @@ Then get all the packages and dependencies using
 
     go install
 
+## Prepare the database
+
+    DROP TABLE IF EXISTS account;
+    CREATE TABLE account (
+        id SERIAL PRIMARY KEY,
+        username VARCHAR(80) UNIQUE NOT NULL,
+        password VARCHAR(80) NOT NULL,
+        email VARCHAR(80) UNIQUE NOT NULL,
+        creation_date TIMESTAMP WITH TIME ZONE DEFAULT now()
+    );
+
 ## Run the tests
 Make sure you have a local instance of the PostgreSQL database running. The
 tests expect the database running on `localhost` and port `5432`. Also, for
@@ -42,6 +53,27 @@ To obtain test coverage information you may want to execute the following comman
 After that you can create a nicer view for the test coverage using
 
     go tool cover -html /tmp/cover.out -o /tmp/cover.html
+
+## Run using Docker
+You can build the image yourself by executing
+
+    docker build -t login-service .
+
+Then create and start the container using
+
+    docker run -itd --name=login-service -p 7043:7043 -t login-service
+
+To setup the container, you can use environment variables described in the following table.
+
+| Variable | Default | Description |
+| -------- | ------- | ----------- |
+| `APPMAN_LOGIN_HOST` | localhost | |
+| `APPMAN_LOGIN_PORT` | 7043      | |
+| `APPMAN_DATABASE_HOST` | localhost | |
+| `APPMAN_DATABASE_PORT` | 5432 | |
+| `APPMAN_DATABASE_USERNAME` | postgres | |
+| `APPMAN_DATABASE_PASSWORD` | password | |
+| `APPMAN_DATABASE_NAME` | database | |
 
 ## Endpoints
 

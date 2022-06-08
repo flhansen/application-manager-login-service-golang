@@ -1,7 +1,6 @@
 package auth
 
 import (
-	"flhansen/application-manager/login-service/src/database"
 	"time"
 
 	"github.com/golang-jwt/jwt"
@@ -13,14 +12,10 @@ type JwtClaims struct {
 	jwt.StandardClaims
 }
 
-type JwtConfig struct {
-	SignKey string `yaml:"signkey"`
-}
-
-func GenerateToken(acc database.Account, signingMethod jwt.SigningMethod, key interface{}) (string, error) {
+func GenerateToken(id int, username string, signingMethod jwt.SigningMethod, key interface{}) (string, error) {
 	claims := JwtClaims{
-		UserId:   acc.Id,
-		Username: acc.Username,
+		UserId:   id,
+		Username: username,
 		StandardClaims: jwt.StandardClaims{
 			ExpiresAt: time.Now().Add(5 * time.Hour).Unix(),
 		},
